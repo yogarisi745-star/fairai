@@ -1,7 +1,7 @@
 
 # FairAI
 
-Mitigating Algorithmic and Judicial Bias in AI-Assisted Legal Systems through a Bidirectional Human-in-the-Loop Governance Framework
+Mitigating Algorithmic and Judicial Bias in AI-Assisted Legal Systems through XAI a Bidirectional Human-in-the-Loop Governance Framework
 
 ## 1. Research Motivation
 
