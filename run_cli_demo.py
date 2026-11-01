@@ -44,7 +44,7 @@ def run_demo():
     # ---------------------------------------------------------
     # CASE 1: High AI Bias Scenario (Marginalized + Low Income)
     # ---------------------------------------------------------
-    case_1 = BENCHMARK_CASES[0]  # Arjun Kumar
+    case_1 = BENCHMARK_CASES[0]  # real COMPAS record (high-bias example)
     print_header(f"PROCESSING CASE: {case_1['case_id']} - {case_1['accused_name']}")
     print(f"Charge Description: {case_1['description']}")
     print(f"Demographics      : {case_1['demographics']}")
@@ -74,14 +74,13 @@ def run_demo():
     print(f"• Triage System Guidance     : {assessment_1['triage_guidance']}")
 
     print("\n[JUDICIAL BENCH - HUMAN JUDGE ADJUDICATION]")
-    print("Judge Rajesh Verma (JD-101) reviews case merits, SHAP decomposition, and bias alert:")
+    print("Judge A (JD-101, simulated) reviews case merits, SHAP decomposition, and bias alert:")
     judge_action = "ACCEPTED"
     final_verdict = assessment_1["ai_debiased_verdict"]
     judicial_reasoning = (
-        "Court finds defendant is charged with non-violent retail infraction with no prior felonies "
-        "and strong community ties. SHAP breakdown demonstrates the initial AI high-risk score was "
-        "unlawfully inflated (+32 points) by protected socio-economic attributes. Court accepts the "
-        "debiased score and orders unconditional personal recognizance bail release."
+        f"SHAP breakdown shows the initial AI score was inflated by +{assessment_1['sensitive_attribution']} points "
+        f"from protected attributes (race group / gender). The court accepts the debiased score "
+        f"({assessment_1['ai_debiased_score']}) and its recommendation, which rests on the prior record and charge only."
     )
     print(f"• Judge Action      : {judge_action} (Accepted Debiased AI Recommendation)")
     print(f"• Final Legal Order : {final_verdict}")
@@ -90,7 +89,7 @@ def run_demo():
     print_step(4, "Cryptographic Blockchain Commitment (Ensuring Immutability)")
     commit_res = system.judge_adjudicate_and_commit(
         case_assessment=assessment_1,
-        judge_id="JD-101 (Judge Verma)",
+        judge_id="JD-101 (Judge A)",
         judge_action=judge_action,
         final_verdict=final_verdict,
         judicial_reasoning=judicial_reasoning,
@@ -107,7 +106,7 @@ def run_demo():
     # ---------------------------------------------------------
     # CASE 2: Low AI Bias Scenario (Legitimate Criminal Merits)
     # ---------------------------------------------------------
-    case_2 = BENCHMARK_CASES[1]  # Vikram Seth
+    case_2 = BENCHMARK_CASES[1]  # real COMPAS record (merit-driven example)
     print_header(f"PROCESSING CASE: {case_2['case_id']} - {case_2['accused_name']}")
     print(f"Charge Description: {case_2['description']}")
     assessment_2 = system.assess_case(case_2)
@@ -120,12 +119,12 @@ def run_demo():
 
     system.judge_adjudicate_and_commit(
         case_assessment=assessment_2,
-        judge_id="JD-101 (Judge Verma)",
+        judge_id="JD-101 (Judge A)",
         judge_action="ACCEPTED",
         final_verdict=assessment_2["ai_debiased_verdict"],
         judicial_reasoning=(
-            "Independent review affirms high recidivism risk due to weapon possession, "
-            "prior violent felonies, and repeat bail failure history. Remand ordered."
+            f"Independent review affirms the AI result: the score is driven by the prior record "
+            f"({case_2['merits']['prior_felonies']} priors) and charge, with no demographic inflation."
         ),
     )
     print("• Case adjudications successfully committed to ledger.")

@@ -26,12 +26,19 @@ class LegalSHAPExplainer:
         "community_ties_score",
     ]
 
-    # Bias disparity threshold (in risk score points)
-    # A gap >= 10.0 indicates significant AI discrimination requiring intensive human judge review.
-    BIAS_THRESHOLD = 10.0
+    # Bias disparity threshold (in risk score points).
+    # A gap >= BIAS_THRESHOLD requires intensive human judge review.
+    # Calibrated to the model's weight source: the hand-coded model had an 18-pt race
+    # effect (threshold 10.0); the COMPAS-fitted model has a ~5.9-pt race effect, so
+    # the threshold is 5.0 (same behaviour: any Marginalized defendant is flagged,
+    # General defendants are not).
+    BIAS_THRESHOLD = 5.0          # COMPAS-fitted weights
+    BIAS_THRESHOLD_HANDCODED = 10.0  # used automatically if the hand-coded fallback is active
 
     def __init__(self, model: LegalRiskModel):
         self.model = model
+        if str(getattr(model, "WEIGHT_SOURCE", "")).startswith("hand-coded"):
+            self.BIAS_THRESHOLD = self.BIAS_THRESHOLD_HANDCODED
         self.baseline_data = LegalRiskModel.POPULATION_BASELINE.copy()
         self.baseline_score = self.model.predict_risk_score(self.baseline_data)
 

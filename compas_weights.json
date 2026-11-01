@@ -1,21 +1,21 @@
 {
   "weights": {
-    "prior_felonies": 3.0464335581913633,
-    "offense_severity": 1.6879483265322326,
-    "age_at_arrest": -1.1686461977919695,
+    "prior_felonies": 3.0464335581913438,
+    "offense_severity": 1.6879483265322095,
+    "age_at_arrest": -1.1686461977919704,
     "prior_misdemeanors": 0.0,
     "bail_failure_history": 0.0,
     "community_ties_score": 0.0,
-    "race_caste_Marginalized": 5.932709115345403,
+    "race_caste_Marginalized": 5.932709115345397,
     "race_caste_General": 0.0,
     "income_level_Medium": 0.0,
     "income_level_Low": 0.0,
     "income_level_High": 0.0,
-    "gender_Female": 0.8164261409448816,
+    "gender_Female": 0.8164261409448776,
     "gender_Male": 0.0,
     "gender_Non-binary": 2.0
   },
-  "intercept": 57.874280672615804,
+  "intercept": 57.87428067261604,
   "population_baseline": {
     "prior_felonies": 3.5,
     "prior_misdemeanors": 0.0,

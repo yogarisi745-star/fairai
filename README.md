@@ -46,8 +46,9 @@ flowchart TD
 - **Bias Gap Metric ($\Delta$):**
   $$\Delta = |S_{\text{original}} - S_{\text{debiased}}|$$
 - **Triage Protocols:**
-  - **$\Delta < 10.0$ (Low Bias Pass):** Eligible for judicial fast-tracking with standard review.
-  - **$\Delta \ge 10.0$ (High Bias Alert):** High demographic bias warning. Mandatory in-depth human review.
+  - **$\Delta < 5.0$ (Low Bias Pass):** Eligible for judicial fast-tracking with standard review.
+  - **$\Delta \ge 5.0$ (High Bias Alert):** High demographic bias warning. Mandatory in-depth human review.
+  - The threshold is 5.0 for COMPAS-fitted weights (race effect ~5.9 pts) and 10.0 for the hand-coded fallback (race effect 18 pts); it is chosen automatically.
 - **Judge's Prerogative:** The presiding human judge can **Accept** the debiased recommendation or **Override** it.
 - **Due Process Requirement:** The judge *must* submit substantive written judicial reasoning explaining their rationale, preventing unexamined rubber-stamping.
 
@@ -109,3 +110,19 @@ python3 test_pipeline.py
 | `app.py` | Complete Streamlit web application with all 4 interactive views |
 | `run_cli_demo.py` | End-to-end command-line execution demo |
 | `test_pipeline.py` | Unit tests verifying mathematical bounds, XAI, blockchain, and auditing |
+
+---
+
+## 🧪 COMPAS data mode (current default)
+
+The project now runs entirely on the ProPublica COMPAS dataset (`compas-scores-two-years.csv`, included):
+
+- **Model:** `compas_loader.py` fits the linear risk model on 5,278 real defendants (African-American and Caucasian, after the standard ProPublica filters). Fitted weights are cached in `compas_weights.json`.
+- **Demo cases:** `compas_cases.py` picks four real COMPAS defendants, identified only by COMPAS `id` (names are never used). One pair is a *counterfactual twin*: same age, priors and charge, different group, and COMPAS scored them differently.
+- **Judicial history:** Real COMPAS defendants are assigned to two **simulated** judges (A: equitable, B: biased pattern). COMPAS has no judge data, so judges and written reasoning are necessarily simulated.
+- **Groups:** `Marginalized` = African-American, `General` = Caucasian (see `RACE_MAP` in `compas_loader.py`). There is no caste information in COMPAS.
+- **Inactive inputs:** income, community ties, bail history and misdemeanor count do not exist in COMPAS and have weight 0. `prior_felonies` means the total prior count.
+- **Fallback:** if the CSV is missing, the project falls back to the original hand-written weights and cases.
+- **Bias threshold:** 5.0 points in COMPAS mode (10.0 in fallback mode).
+
+Data source: https://github.com/propublica/compas-analysis

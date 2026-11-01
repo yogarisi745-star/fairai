@@ -130,6 +130,8 @@ def load_compas(path: str) -> Tuple[pd.DataFrame, int]:
         "target_score",
         # keep original for diagnostics
         "race", "sex", "decile_score", "c_charge_degree", "priors_count",
+        # used to build demo cases from real rows (names are never kept)
+        "id", "c_charge_desc", "two_year_recid",
     ]
     df = df[keep_cols].reset_index(drop=True)
 

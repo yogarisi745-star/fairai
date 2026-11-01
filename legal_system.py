@@ -44,11 +44,14 @@ class LegalBiasMitigationSystem:
         is_high_bias = explanation["requires_strict_human_scrutiny"]
 
         # Human-in-the-loop triage flag
+        sensitive = {k: v for k, v in explanation["shap_values"].items()
+                     if k in self.explainer.SENSITIVE_ATTRS}
+        top_sens, top_sens_impact = max(sensitive.items(), key=lambda kv: abs(kv[1]))
         if is_high_bias:
             triage_guidance = (
                 f"🚨 HIGH AI BIAS WARNING (Bias Gap: +{bias_gap} pts). "
                 f"The AI model heavily penalized sensitive demographic attributes "
-                f"({explanation['top_contributing_factor']}: {explanation['top_factor_impact']} pts). "
+                f"({top_sens}: {top_sens_impact:+} pts). "
                 f"Judge scrutiny MANDATORY: Consider overriding AI original output with debiased recommendation."
             )
         else:

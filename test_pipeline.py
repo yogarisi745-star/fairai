@@ -6,10 +6,8 @@ Updated for COMPAS data mode:
     since income now has weight 0.0 in data-fitted mode).
   - Added tests for: loader row count/filters, 14-key WEIGHTS, [0,100] bounds,
     SHAP additivity, fallback behaviour, and end-to-end CLI demo.
-  - HIGH_BIAS_DETECTED threshold (10.0) requires a bias gap of >= 10 pts.
-    With real COMPAS coefficients (race ~5.93, gender ~0.82) the maximum
-    demographic gap is ~6.75 pts, so the high-bias demo case now falls into
-    LOW_BIAS_PASS — this reflects real-world COMPAS data and is expected.
+  - HIGH_BIAS_DETECTED threshold is 5.0 in COMPAS mode (10.0 for the hand-coded
+    fallback), so Marginalized cases are flagged and General cases are not.
 """
 
 import os
@@ -200,13 +198,15 @@ class TestSHAPAndDebiasing(unittest.TestCase):
         BENCHMARK_CASES[0] is the 'high-bias' demo (Marginalized defendant).
         With COMPAS weights the race SHAP (~5.93) is real and positive,
         and the debiased score must be lower than the original.
-        Note: the gap may be < 10.0 (LOW_BIAS_PASS) because real COMPAS
-        coefficients are smaller than the hand-coded weights.
+        The gap must reach BIAS_THRESHOLD so the mandatory human-scrutiny path fires.
         """
         accused_data = {**BENCHMARK_CASES[0]["demographics"], **BENCHMARK_CASES[0]["merits"]}
         result = self.explainer.explain_and_evaluate(accused_data)
         self.assertGreater(result["shap_values"]["race_caste"], 0)
         self.assertLess(result["debiased_score"], result["original_score"])
+        self.assertGreaterEqual(result["bias_gap"], self.explainer.BIAS_THRESHOLD)
+        self.assertEqual(result["bias_flag"], "HIGH_BIAS_DETECTED")
+        self.assertTrue(result["requires_strict_human_scrutiny"])
 
     def test_low_bias_demo_case_has_zero_race_attribution(self):
         """BENCHMARK_CASES[1] is General/Male — race SHAP must be 0."""
@@ -214,6 +214,40 @@ class TestSHAPAndDebiasing(unittest.TestCase):
         result = self.explainer.explain_and_evaluate(accused_data)
         self.assertEqual(result["shap_values"]["race_caste"], 0.0)
         self.assertEqual(result["bias_gap"], 0.0)
+        self.assertEqual(result["bias_flag"], "LOW_BIAS_PASS")
+        self.assertFalse(result["requires_strict_human_scrutiny"])
+
+    def test_threshold_follows_weight_source(self):
+        """Threshold is 5.0 for COMPAS weights, 10.0 for the hand-coded fallback."""
+        expected = 10.0 if self.model.WEIGHT_SOURCE.startswith("hand-coded") else 5.0
+        self.assertEqual(self.explainer.BIAS_THRESHOLD, expected)
+
+
+class TestCompasOnlyDemo(unittest.TestCase):
+    """Demo cases and judge history must come from real COMPAS rows when the CSV exists."""
+
+    def setUp(self):
+        import demo_cases
+        if demo_cases.DATA_SOURCE != "COMPAS (real rows)":
+            self.skipTest("COMPAS CSV not present.")
+        self.dc = demo_cases
+
+    def test_cases_are_real_compas_rows(self):
+        for c in self.dc.BENCHMARK_CASES:
+            self.assertTrue(c["case_id"].startswith("COMPAS-"))
+            self.assertIn("COMPAS Defendant #", c["accused_name"])   # no personal names
+            self.assertIn("compas_decile_score", c)
+
+    def test_twin_case_has_same_merits_different_group(self):
+        a, b = self.dc.BENCHMARK_CASES[0], self.dc.BENCHMARK_CASES[3]
+        self.assertEqual(a["merits"], b["merits"])
+        self.assertNotEqual(a["demographics"]["race_caste"], b["demographics"]["race_caste"])
+
+    def test_seeded_history_uses_compas_ids(self):
+        system = LegalBiasMitigationSystem(seed_data=True)
+        ids = [blk.case_data.get("accused_id", "") for blk in system.blockchain.chain[1:]]
+        ids = [i for i in ids if i]
+        self.assertTrue(ids and all(i.startswith("COMPAS-ID-") for i in ids))
 
 
 class TestBlockchain(unittest.TestCase):
@@ -255,15 +289,15 @@ class TestJudicialMonitoring(unittest.TestCase):
         self.system = LegalBiasMitigationSystem(seed_data=True)
 
     def test_judicial_bias_monitoring_and_board_alerts(self):
-        """Verify Judge Verma is compliant and Judge Singhania is flagged."""
-        audit_verma = self.system.audit_judge("JD-101 (Judge Verma)")
-        self.assertEqual(audit_verma["status"], "EQUITABLE_COMPLIANT")
-        self.assertFalse(audit_verma["requires_board_review"])
+        """Verify simulated Judge A is compliant and Judge B is flagged."""
+        audit_a = self.system.audit_judge("JD-101 (Judge A)")
+        self.assertEqual(audit_a["status"], "EQUITABLE_COMPLIANT")
+        self.assertFalse(audit_a["requires_board_review"])
 
-        audit_singhania = self.system.audit_judge("JD-202 (Judge Singhania)")
-        self.assertEqual(audit_singhania["status"], "FLAGGED_FOR_INVESTIGATION")
-        self.assertTrue(audit_singhania["requires_board_review"])
-        self.assertLess(audit_singhania["disparate_impact_ratio"], 0.80)
+        audit_b = self.system.audit_judge("JD-202 (Judge B)")
+        self.assertEqual(audit_b["status"], "FLAGGED_FOR_INVESTIGATION")
+        self.assertTrue(audit_b["requires_board_review"])
+        self.assertLess(audit_b["disparate_impact_ratio"], 0.80)
 
 
 class TestEndToEnd(unittest.TestCase):

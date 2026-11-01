@@ -142,7 +142,7 @@ if navigation == "1. Accused Assessment & SHAP Debiasing":
         with c2:
             st.markdown("**Protected Demographics (Bias Scrutiny)**")
             race_caste = st.selectbox(
-                "Race / Caste Group",
+                "Race Group (Marginalized = African-American, General = Caucasian)",
                 ["Marginalized", "General"],
                 index=0 if active_data["demographics"].get("race_caste") == "Marginalized" else 1,
             )
@@ -325,7 +325,7 @@ elif navigation == "2. Judicial Bench (HITL-1)":
 
     if not st.session_state.current_assessment:
         st.warning("⚠️ No active case loaded. Please run assessment in Tab 1 or select a demo case below.")
-        if st.button("Load Sample High-Bias Case (Arjun Kumar)"):
+        if st.button("Load Sample High-Bias Case (real COMPAS record)"):
             st.session_state.current_assessment = system.assess_case(BENCHMARK_CASES[0])
             st.rerun()
     else:
@@ -352,7 +352,7 @@ elif navigation == "2. Judicial Bench (HITL-1)":
 
         judge_id = st.selectbox(
             "Presiding Judge ID",
-            ["JD-101 (Judge Verma)", "JD-202 (Judge Singhania)", "JD-303 (Judge Iyer)"],
+            ["JD-101 (Judge A)", "JD-202 (Judge B)", "JD-303 (Judge C)"],
         )
 
         col_act1, col_act2 = st.columns(2)
