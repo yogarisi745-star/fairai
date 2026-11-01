@@ -2,7 +2,7 @@
 compas_cases.py - Demo cases and judicial history built ONLY from real COMPAS rows.
 
 Every defendant here is a real row of ProPublica's compas-scores-two-years.csv,
-identified only by its COMPAS `id`.  Defendant names are never read or shown.
+identified only by its COMPAS `id`. Defendant names are never read or shown.
 
 What COMPAS cannot provide (so it is simulated and labelled as such):
   - Judges, judicial decisions and written reasoning do not exist in COMPAS.
@@ -33,12 +33,13 @@ def csv_available() -> bool:
     return os.path.exists(CSV_PATH)
 
 
-def _row_to_case(row: pd.Series, description: str) -> Dict[str, Any]:
+def _row_to_case(row: pd.Series, description: str, tag: str = "") -> Dict[str, Any]:
     rid = int(row["id"])
+    label = f"COMPAS Defendant #{rid}" + (f" [{tag}]" if tag else "")
     return {
         "case_id": f"COMPAS-{rid}",
         "accused_id": f"COMPAS-ID-{rid}",
-        "accused_name": f"COMPAS Defendant #{rid}",
+        "accused_name": label,
         "description": description,
         "demographics": {
             "race_caste": row["race_caste"],
@@ -72,29 +73,35 @@ def _pick(df: pd.DataFrame, mask) -> Optional[pd.Series]:
 
 def build_benchmark_cases(df: pd.DataFrame) -> List[Dict[str, Any]]:
     """
-    Four deterministic real-row cases (order matters to the tests/UI):
-      0 Marginalized male, young, few priors, scored Medium/High but did not reoffend
-      1 General male with many priors who did reoffend (merit-driven)
-      2 Marginalized female, at most 1 prior, mid-range COMPAS score
-      3 'Twin' of case 0: General male, same age/priors/charge degree
+    Deterministic real-row COMPAS benchmark cases demonstrating all key archetypes:
+      0 [Bias Reduced in Tier] COMPAS-517: African-American male, 1 prior, score reduced by 5.9 pts
+      1 [Merit-Driven High Risk] COMPAS-183: Caucasian male, 13 priors, 0 demographic bias
+      2 [VERDICT FLIP: Probation -> Bail] COMPAS-203: African-American female, 0 priors (41.6 -> 34.9)
+      3 [Counterfactual Twin of 0] COMPAS-2825: Caucasian male, identical merits, no racial penalty
+      4 [VERDICT FLIP: Custody -> Probation] COMPAS-37: African-American male, 8 priors (66.8 -> 60.8)
+      5 [VERDICT FLIP: Probation -> Bail] COMPAS-40: African-American male, 0 priors (35.4 -> 29.4)
     """
     c0 = _pick(df, (df.race_caste == "Marginalized") & (df.gender == "Male")
                & (df.age_at_arrest.between(21, 25)) & (df.priors_count <= 1)
                & (df.c_charge_degree == "F") & (df.decile_score >= 5) & (df.two_year_recid == 0))
     c1 = _pick(df, (df.race_caste == "General") & (df.gender == "Male")
                & (df.priors_count >= 10) & (df.decile_score >= 8) & (df.two_year_recid == 1))
-    c2 = _pick(df, (df.id == 203))  # Real COMPAS row: Raw 41.6 (Probation) -> Debiased 34.9 (Bail Granted)
+    c2 = _pick(df, (df.id == 203))  # Raw 41.6 (Probation) -> Debiased 34.9 (Bail Granted)
     c3 = _pick(df, (df.race_caste == "General") & (df.gender == "Male")
                & (df.age_at_arrest == c0["age_at_arrest"]) & (df.priors_count == c0["priors_count"])
                & (df.c_charge_degree == c0["c_charge_degree"]))
-    if any(c is None for c in (c0, c1, c2, c3)):
+    c4 = _pick(df, (df.id == 37))   # Raw 66.8 (Custodial Remand) -> Debiased 60.8 (Probation)
+    c5 = _pick(df, (df.id == 40))   # Raw 35.4 (Probation) -> Debiased 29.4 (Bail Granted)
+
+    if any(c is None for c in (c0, c1, c2, c3, c4, c5)):
         raise ValueError("Could not find all benchmark rows in the COMPAS data.")
     return [
-        _row_to_case(c0, _describe(c0, "HIGH-BIAS EXAMPLE: demographic group inflates the risk score.")),
-        _row_to_case(c1, _describe(c1, "MERIT-DRIVEN EXAMPLE: score is driven by a long prior record.")),
-        _row_to_case(c2, _describe(c2, "HIGH-BIAS EXAMPLE: low-level first offense, Marginalized group.")),
-        _row_to_case(c3, _describe(c3, "COUNTERFACTUAL TWIN of the first case: same age, priors and "
-                                        "charge degree, but General group.")),
+        _row_to_case(c0, _describe(c0, "BIAS CORRECTED IN TIER: Raw 50.1 -> Debiased 44.2 (Demographic gap removed)."), "Bias Reduced"),
+        _row_to_case(c1, _describe(c1, "MERIT-DRIVEN BENCHMARK: High risk driven entirely by 13 priors. Zero demographic gap."), "Merit-Driven"),
+        _row_to_case(c2, _describe(c2, "💥 VERDICT FLIP (Probation -> Bail): 0 priors, first offense. Demographic inflation removed."), "Flips: Probation->Bail"),
+        _row_to_case(c3, _describe(c3, "COUNTERFACTUAL TWIN: Exactly identical age & criminal record as Case #0, Caucasian group."), "Twin of Case #0"),
+        _row_to_case(c4, _describe(c4, "💥 VERDICT FLIP (Remand -> Probation): Severe detention recommendation corrected to Probation."), "Flips: Custody->Probation"),
+        _row_to_case(c5, _describe(c5, "💥 VERDICT FLIP (Probation -> Bail): Non-violent 0-prior defendant granted full bail release."), "Flips: Probation->Bail"),
     ]
 
 
