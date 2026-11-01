@@ -1,0 +1,515 @@
+{
+  "generated_at": "2026-11-01T14:29:32.012669+00:00",
+  "n_train": 3694,
+  "n_test": 1584,
+  "feature_columns": [
+    "age_num",
+    "priors_num",
+    "charge_sev",
+    "sex_female",
+    "race_marginalized"
+  ],
+  "compas_cutoff_score": 44.4,
+  "debiasing_note": "Debiased variant: race_marginalized set to 0 (Caucasian) and sex_female set to 0 (Male reference) at prediction time \u2014 identical to the project's counterfactual neutralization in xai_shap.py.",
+  "models": {
+    "compas_reference": {
+      "label": "COMPAS Reference (decile>=5)",
+      "overall": {
+        "n": 1584,
+        "accuracy": 0.6679,
+        "roc_auc": 0.7205,
+        "fpr": 0.3087,
+        "fnr": 0.3584,
+        "precision": 0.6486,
+        "selection_rate": 0.4653,
+        "brier_score": 0.2339,
+        "tp": 478,
+        "fp": 259,
+        "tn": 580,
+        "fn": 267
+      },
+      "by_group": {
+        "African-American": {
+          "n": 947,
+          "accuracy": 0.6737,
+          "roc_auc": 0.7265,
+          "fpr": 0.3747,
+          "fnr": 0.2823,
+          "precision": 0.6781,
+          "selection_rate": 0.5544,
+          "brier_score": 0.2294,
+          "tp": 356,
+          "fp": 169,
+          "tn": 282,
+          "fn": 140
+        },
+        "Caucasian": {
+          "n": 637,
+          "accuracy": 0.6593,
+          "roc_auc": 0.6887,
+          "fpr": 0.232,
+          "fnr": 0.51,
+          "precision": 0.5755,
+          "selection_rate": 0.3328,
+          "brier_score": 0.2405,
+          "tp": 122,
+          "fp": 90,
+          "tn": 298,
+          "fn": 127
+        }
+      },
+      "gaps": {
+        "fpr_gap_AA_minus_CA": 0.1427,
+        "fnr_gap_AA_minus_CA": -0.2277,
+        "demographic_parity_diff": 0.2216,
+        "disparate_impact_ratio": 1.6659,
+        "equalized_odds_diff": 0.2277,
+        "note": "Positive gap = African-American group has higher rate than Caucasian group."
+      },
+      "calibration": [
+        {
+          "bin": "(-0.001, 0.111]",
+          "mean_predicted": 0.0491,
+          "actual_reoffend_rate": 0.2514,
+          "n": 521
+        },
+        {
+          "bin": "(0.111, 0.222]",
+          "mean_predicted": 0.2222,
+          "actual_reoffend_rate": 0.3922,
+          "n": 153
+        },
+        {
+          "bin": "(0.222, 0.444]",
+          "mean_predicted": 0.3846,
+          "actual_reoffend_rate": 0.4611,
+          "n": 321
+        },
+        {
+          "bin": "(0.444, 0.667]",
+          "mean_predicted": 0.6077,
+          "actual_reoffend_rate": 0.6044,
+          "n": 273
+        },
+        {
+          "bin": "(0.667, 1.0]",
+          "mean_predicted": 0.878,
+          "actual_reoffend_rate": 0.7627,
+          "n": 316
+        }
+      ]
+    },
+    "model_a_with_demo": {
+      "label": "Model A \u2014 COMPAS Copy (with race/gender)",
+      "overall": {
+        "n": 1584,
+        "accuracy": 0.6553,
+        "roc_auc": 0.7164,
+        "fpr": 0.2884,
+        "fnr": 0.4081,
+        "precision": 0.6457,
+        "selection_rate": 0.4312,
+        "brier_score": 0.2206,
+        "tp": 441,
+        "fp": 242,
+        "tn": 597,
+        "fn": 304
+      },
+      "by_group": {
+        "African-American": {
+          "n": 947,
+          "accuracy": 0.6526,
+          "roc_auc": 0.7286,
+          "fpr": 0.439,
+          "fnr": 0.2641,
+          "precision": 0.6483,
+          "selection_rate": 0.5945,
+          "brier_score": 0.2182,
+          "tp": 365,
+          "fp": 198,
+          "tn": 253,
+          "fn": 131
+        },
+        "Caucasian": {
+          "n": 637,
+          "accuracy": 0.6593,
+          "roc_auc": 0.6781,
+          "fpr": 0.1134,
+          "fnr": 0.6948,
+          "precision": 0.6333,
+          "selection_rate": 0.1884,
+          "brier_score": 0.2242,
+          "tp": 76,
+          "fp": 44,
+          "tn": 344,
+          "fn": 173
+        }
+      },
+      "gaps": {
+        "fpr_gap_AA_minus_CA": 0.3256,
+        "fnr_gap_AA_minus_CA": -0.4307,
+        "demographic_parity_diff": 0.4061,
+        "disparate_impact_ratio": 3.1555,
+        "equalized_odds_diff": 0.4307,
+        "note": "Positive gap = African-American group has higher rate than Caucasian group."
+      },
+      "calibration": [
+        {
+          "bin": "(-0.001, 0.242]",
+          "mean_predicted": 0.1223,
+          "actual_reoffend_rate": 0.2296,
+          "n": 318
+        },
+        {
+          "bin": "(0.242, 0.373]",
+          "mean_predicted": 0.3162,
+          "actual_reoffend_rate": 0.3849,
+          "n": 317
+        },
+        {
+          "bin": "(0.373, 0.452]",
+          "mean_predicted": 0.4161,
+          "actual_reoffend_rate": 0.4069,
+          "n": 317
+        },
+        {
+          "bin": "(0.452, 0.532]",
+          "mean_predicted": 0.4908,
+          "actual_reoffend_rate": 0.5429,
+          "n": 315
+        },
+        {
+          "bin": "(0.532, 1.0]",
+          "mean_predicted": 0.6607,
+          "actual_reoffend_rate": 0.7886,
+          "n": 317
+        }
+      ]
+    },
+    "model_a_debiased": {
+      "label": "Model A \u2014 COMPAS Copy (debiased)",
+      "overall": {
+        "n": 1584,
+        "accuracy": 0.6635,
+        "roc_auc": 0.7172,
+        "fpr": 0.1585,
+        "fnr": 0.5369,
+        "precision": 0.7218,
+        "selection_rate": 0.3018,
+        "brier_score": 0.2271,
+        "tp": 345,
+        "fp": 133,
+        "tn": 706,
+        "fn": 400
+      },
+      "by_group": {
+        "African-American": {
+          "n": 947,
+          "accuracy": 0.6663,
+          "roc_auc": 0.7285,
+          "fpr": 0.1973,
+          "fnr": 0.4577,
+          "precision": 0.7514,
+          "selection_rate": 0.378,
+          "brier_score": 0.2291,
+          "tp": 269,
+          "fp": 89,
+          "tn": 362,
+          "fn": 227
+        },
+        "Caucasian": {
+          "n": 637,
+          "accuracy": 0.6593,
+          "roc_auc": 0.678,
+          "fpr": 0.1134,
+          "fnr": 0.6948,
+          "precision": 0.6333,
+          "selection_rate": 0.1884,
+          "brier_score": 0.2242,
+          "tp": 76,
+          "fp": 44,
+          "tn": 344,
+          "fn": 173
+        }
+      },
+      "gaps": {
+        "fpr_gap_AA_minus_CA": 0.0839,
+        "fnr_gap_AA_minus_CA": -0.2371,
+        "demographic_parity_diff": 0.1896,
+        "disparate_impact_ratio": 2.0064,
+        "equalized_odds_diff": 0.2371,
+        "note": "Positive gap = African-American group has higher rate than Caucasian group."
+      },
+      "calibration": [
+        {
+          "bin": "(-0.001, 0.219]",
+          "mean_predicted": 0.103,
+          "actual_reoffend_rate": 0.2303,
+          "n": 317
+        },
+        {
+          "bin": "(0.219, 0.338]",
+          "mean_predicted": 0.2871,
+          "actual_reoffend_rate": 0.3777,
+          "n": 323
+        },
+        {
+          "bin": "(0.338, 0.411]",
+          "mean_predicted": 0.3771,
+          "actual_reoffend_rate": 0.4116,
+          "n": 311
+        },
+        {
+          "bin": "(0.411, 0.48]",
+          "mean_predicted": 0.4446,
+          "actual_reoffend_rate": 0.5506,
+          "n": 316
+        },
+        {
+          "bin": "(0.48, 1.0]",
+          "mean_predicted": 0.6096,
+          "actual_reoffend_rate": 0.7823,
+          "n": 317
+        }
+      ]
+    },
+    "model_b_with_demo": {
+      "label": "Model B \u2014 Real Outcome (with race/gender)",
+      "overall": {
+        "n": 1584,
+        "accuracy": 0.6692,
+        "roc_auc": 0.7212,
+        "fpr": 0.2574,
+        "fnr": 0.4134,
+        "precision": 0.6692,
+        "selection_rate": 0.4122,
+        "brier_score": 0.2126,
+        "tp": 437,
+        "fp": 216,
+        "tn": 623,
+        "fn": 308
+      },
+      "by_group": {
+        "African-American": {
+          "n": 947,
+          "accuracy": 0.6811,
+          "roc_auc": 0.7329,
+          "fpr": 0.3326,
+          "fnr": 0.3065,
+          "precision": 0.6964,
+          "selection_rate": 0.5216,
+          "brier_score": 0.2114,
+          "tp": 344,
+          "fp": 150,
+          "tn": 301,
+          "fn": 152
+        },
+        "Caucasian": {
+          "n": 637,
+          "accuracy": 0.6515,
+          "roc_auc": 0.6786,
+          "fpr": 0.1701,
+          "fnr": 0.6265,
+          "precision": 0.5849,
+          "selection_rate": 0.2496,
+          "brier_score": 0.2145,
+          "tp": 93,
+          "fp": 66,
+          "tn": 322,
+          "fn": 156
+        }
+      },
+      "gaps": {
+        "fpr_gap_AA_minus_CA": 0.1625,
+        "fnr_gap_AA_minus_CA": -0.32,
+        "demographic_parity_diff": 0.272,
+        "disparate_impact_ratio": 2.0897,
+        "equalized_odds_diff": 0.32,
+        "note": "Positive gap = African-American group has higher rate than Caucasian group."
+      },
+      "calibration": [
+        {
+          "bin": "(0.0604, 0.301]",
+          "mean_predicted": 0.2111,
+          "actual_reoffend_rate": 0.2145,
+          "n": 317
+        },
+        {
+          "bin": "(0.301, 0.416]",
+          "mean_predicted": 0.3633,
+          "actual_reoffend_rate": 0.375,
+          "n": 320
+        },
+        {
+          "bin": "(0.416, 0.503]",
+          "mean_predicted": 0.4614,
+          "actual_reoffend_rate": 0.4146,
+          "n": 316
+        },
+        {
+          "bin": "(0.503, 0.609]",
+          "mean_predicted": 0.5492,
+          "actual_reoffend_rate": 0.5605,
+          "n": 314
+        },
+        {
+          "bin": "(0.609, 0.988]",
+          "mean_predicted": 0.7463,
+          "actual_reoffend_rate": 0.7886,
+          "n": 317
+        }
+      ]
+    },
+    "model_b_debiased": {
+      "label": "Model B \u2014 Real Outcome (debiased)",
+      "overall": {
+        "n": 1584,
+        "accuracy": 0.6698,
+        "roc_auc": 0.723,
+        "fpr": 0.2729,
+        "fnr": 0.3946,
+        "precision": 0.6632,
+        "selection_rate": 0.4293,
+        "brier_score": 0.2129,
+        "tp": 451,
+        "fp": 229,
+        "tn": 610,
+        "fn": 294
+      },
+      "by_group": {
+        "African-American": {
+          "n": 947,
+          "accuracy": 0.6779,
+          "roc_auc": 0.7319,
+          "fpr": 0.3392,
+          "fnr": 0.3065,
+          "precision": 0.6922,
+          "selection_rate": 0.5248,
+          "brier_score": 0.2126,
+          "tp": 344,
+          "fp": 153,
+          "tn": 298,
+          "fn": 152
+        },
+        "Caucasian": {
+          "n": 637,
+          "accuracy": 0.6578,
+          "roc_auc": 0.6854,
+          "fpr": 0.1959,
+          "fnr": 0.5703,
+          "precision": 0.5847,
+          "selection_rate": 0.2873,
+          "brier_score": 0.2134,
+          "tp": 107,
+          "fp": 76,
+          "tn": 312,
+          "fn": 142
+        }
+      },
+      "gaps": {
+        "fpr_gap_AA_minus_CA": 0.1433,
+        "fnr_gap_AA_minus_CA": -0.2638,
+        "demographic_parity_diff": 0.2375,
+        "disparate_impact_ratio": 1.8267,
+        "equalized_odds_diff": 0.2638,
+        "note": "Positive gap = African-American group has higher rate than Caucasian group."
+      },
+      "calibration": [
+        {
+          "bin": "(0.0624, 0.326]",
+          "mean_predicted": 0.23,
+          "actual_reoffend_rate": 0.2305,
+          "n": 321
+        },
+        {
+          "bin": "(0.326, 0.434]",
+          "mean_predicted": 0.3882,
+          "actual_reoffend_rate": 0.3594,
+          "n": 320
+        },
+        {
+          "bin": "(0.434, 0.514]",
+          "mean_predicted": 0.4748,
+          "actual_reoffend_rate": 0.4226,
+          "n": 310
+        },
+        {
+          "bin": "(0.514, 0.61]",
+          "mean_predicted": 0.5529,
+          "actual_reoffend_rate": 0.5514,
+          "n": 321
+        },
+        {
+          "bin": "(0.61, 0.988]",
+          "mean_predicted": 0.748,
+          "actual_reoffend_rate": 0.7949,
+          "n": 312
+        }
+      ]
+    }
+  },
+  "mitigation_comparison": [
+    {
+      "method": "Baseline (no mitigation)",
+      "accuracy": 0.6692,
+      "roc_auc": 0.7212,
+      "fpr": 0.2574,
+      "fnr": 0.4134,
+      "equalized_odds_diff": 0.32,
+      "fpr_gap": 0.1625,
+      "fnr_gap": -0.32,
+      "demographic_parity_diff": 0.272
+    },
+    {
+      "method": "Counterfactual Neutralization",
+      "accuracy": 0.6698,
+      "roc_auc": 0.723,
+      "fpr": 0.2729,
+      "fnr": 0.3946,
+      "equalized_odds_diff": 0.2638,
+      "fpr_gap": 0.1433,
+      "fnr_gap": -0.2638,
+      "demographic_parity_diff": 0.2375
+    },
+    {
+      "method": "Reweighing",
+      "accuracy": 0.6578,
+      "roc_auc": 0.7081,
+      "fpr": 0.2551,
+      "fnr": 0.4403,
+      "equalized_odds_diff": 0.1392,
+      "fpr_gap": -0.1392,
+      "fnr_gap": 0.0219,
+      "demographic_parity_diff": -0.0453
+    },
+    {
+      "method": "ThresholdOptimizer (EqualizedOdds)",
+      "accuracy": 0.6484,
+      "roc_auc": 0.7212,
+      "fpr": 0.3075,
+      "fnr": 0.4013,
+      "equalized_odds_diff": 0.0608,
+      "fpr_gap": -0.0273,
+      "fnr_gap": -0.0608,
+      "demographic_parity_diff": 0.0502
+    },
+    {
+      "method": "ExponentiatedGradient (EqualizedOdds)",
+      "accuracy": 0.6534,
+      "roc_auc": 0.6857,
+      "fpr": 0.2801,
+      "fnr": 0.4215,
+      "equalized_odds_diff": 0.0546,
+      "fpr_gap": -0.0351,
+      "fnr_gap": -0.0546,
+      "demographic_parity_diff": 0.0442
+    }
+  ],
+  "findings": [
+    "COMPAS shows a false-positive-rate gap of +0.143 (African-American minus Caucasian): African-American defendants are incorrectly labeled high-risk at a higher rate than Caucasian defendants.",
+    "Counterfactual debiasing (Model B) reduces the FPR gap from +0.163 to +0.143. However, the gap does not reach zero because race correlates with other features (proxy bias).",
+    "Among all mitigation methods, 'ExponentiatedGradient (EqualizedOdds)' achieves the lowest equalized-odds difference (0.0546) at accuracy 0.6534. Best trade-off does not necessarily mean perfect fairness \u2014 examine FPR and FNR gaps separately.",
+    "Fairness-accuracy trade-off: the best mitigation method reduces equalized-odds difference by 0.2654 at a cost of 0.0158 accuracy points (1.58%). This trade-off is inherent and cannot be eliminated.",
+    "Limitations: race and sex are binary here due to COMPAS data constraints. Counterfactual debiasing cannot eliminate proxy bias through correlated legal-merit features. These results apply to Broward County, FL (2013-2014) only and should not be extrapolated to other jurisdictions or time periods."
+  ]
+}
