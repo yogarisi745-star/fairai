@@ -35,11 +35,17 @@ def csv_available() -> bool:
 
 def _row_to_case(row: pd.Series, description: str, tag: str = "") -> Dict[str, Any]:
     rid = int(row["id"])
-    label = f"COMPAS Defendant #{rid}" + (f" [{tag}]" if tag else "")
+    if "first" in row and pd.notna(row["first"]) and "last" in row and pd.notna(row["last"]):
+        person_name = f"{str(row['first']).title()} {str(row['last']).title()}"
+    else:
+        person_name = f"Defendant #{rid}"
+    
+    dropdown_label = f"{person_name} [{tag}]" if tag else person_name
     return {
         "case_id": f"COMPAS-{rid}",
         "accused_id": f"COMPAS-ID-{rid}",
-        "accused_name": label,
+        "accused_name": person_name,
+        "case_label": dropdown_label,
         "description": description,
         "demographics": {
             "race_caste": row["race_caste"],

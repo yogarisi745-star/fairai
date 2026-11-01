@@ -120,7 +120,7 @@ if navigation == "1. Accused Assessment & SHAP Debiasing":
 
     with col_bench:
         st.subheader("Select Benchmark Case")
-        case_options = {f"{c['case_id']} - {c['accused_name']}": c for c in BENCHMARK_CASES}
+        case_options = {f"{c['case_id']} - {c.get('case_label', c['accused_name'])}": c for c in BENCHMARK_CASES}
         selected_case_name = st.selectbox("Pre-configured Cases", list(case_options.keys()))
         selected_case = case_options[selected_case_name]
 

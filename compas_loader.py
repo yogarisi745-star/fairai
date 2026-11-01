@@ -113,7 +113,7 @@ def load_compas(path: str) -> Tuple[pd.DataFrame, int]:
         "target_score",
         # keep originals for diagnostics / demo-case building
         "race", "sex", "decile_score", "c_charge_degree", "priors_count",
-        "id", "c_charge_desc", "two_year_recid",
+        "id", "c_charge_desc", "two_year_recid", "first", "last",
     ]
     df = df[[c for c in keep_cols if c in df.columns]].reset_index(drop=True)
 
