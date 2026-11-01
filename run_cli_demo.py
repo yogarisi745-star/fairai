@@ -142,6 +142,15 @@ def run_demo():
         print(f"AUDIT DOSSIER: {audit['judge_id']}")
         print(f"=======================================================")
         print(f"• Total Cases Reviewed  : {audit['total_cases']}")
+
+        # INSUFFICIENT_DATA is returned when fewer than MIN_CASES_BEFORE_FLAGGING
+        # cases have been recorded. The seeded demo history has 6-7 cases which is
+        # below the statistically validated minimum of 20 (see audit_validation.py).
+        if audit["status"] == "INSUFFICIENT_DATA":
+            print(f"• Board Audit Status    : ⚠  {audit['status']}")
+            print(f"• Note: {audit.get('message', 'Insufficient data for reliable bias assessment.')}")
+            continue
+
         print(f"• Override Frequency    : {audit['total_overrides']} cases ({audit['override_rate']:.1%})")
         print(f"• Marginalized Group    : Total={audit['marginalized_stats']['total']}, "
               f"Favorable Rate={audit['marginalized_stats']['favorable_rate']:.1%}, "
@@ -154,15 +163,15 @@ def run_demo():
         print(f"• Statistical p-value   : {audit['p_value']}")
 
         if audit["status"] == "FLAGGED_FOR_INVESTIGATION":
-            print(f"• Board Audit Status    : 🚨 {audit['status']}")
+            print(f"• Board Audit Status    : {audit['status']}")
             print("• ACTION FOR JUDICIAL OVERSIGHT BOARD (HUMAN):")
             for finding in audit["findings"]:
-                print(f"   ⚠️  {finding}")
+                print(f"     {finding}")
             print("   -> Formal inquiry initiated to verify if judicial discretion is being exercised unfairly.")
         else:
-            print(f"• Board Audit Status    : ✅ {audit['status']}")
+            print(f"• Board Audit Status    : {audit['status']}")
             for finding in audit["findings"]:
-                print(f"   ✓  {finding}")
+                print(f"     {finding}")
 
     # ---------------------------------------------------------
     # STEP 4 DEMO: BLOCKCHAIN TAMPER DETECTION DEMONSTRATION

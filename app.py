@@ -6,7 +6,12 @@ Institutional Dashboard:
 - View 2: Judicial Bench (HITL Level-1): Judge review, fast-track / override with reasoning, and blockchain commitment.
 - View 3: Cryptographic Blockchain Ledger Explorer & Tamper Integrity Verifier.
 - View 4: Judicial Oversight Board (HITL Level-2): AI trend analysis, demographic disparity, and judicial bias flags.
+- View 5: Model Fairness Report (reads results/fairness_report.json).
+- View 6: Audit Reliability (reads results/audit_validation.json).
 """
+
+import json
+import os
 
 import streamlit as st
 import pandas as pd
@@ -114,6 +119,8 @@ navigation = st.sidebar.radio(
         "2. Judicial Bench Review (HITL-1)",
         "3. Cryptographic Ledger & Audit Guard",
         "4. Judicial Oversight Board (HITL-2)",
+        "5. Model Fairness Report",
+        "6. Audit Reliability",
     ],
 )
 
@@ -138,8 +145,54 @@ if "COMPAS" in _weight_src:
 else:
     st.sidebar.warning(f"Model Configuration: **{_weight_src}** (CSV not found)")
 
+
+# ── Shared helpers ────────────────────────────────────────────────────────────
+
+def _page_footer():
+    """Render a consistent footer on every page."""
+    st.markdown("---")
+    st.caption(
+        f"**Model weights source:** {_weight_src}  |  "
+        "**Data:** ProPublica COMPAS, 5,278 defendants (Broward County, FL, 2013–2014)  |  "
+        "**Prototype only — not for real court use.**"
+    )
+
+
+@st.cache_data
+def _load_json(path: str):
+    """Load a JSON file; return None on failure."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _dist_to_boundary(score: float) -> float:
+    """Distance (pts) from score to nearest verdict band boundary (35 or 65)."""
+    return float(min(abs(score - 35.0), abs(score - 65.0)))
+
+
+def _shap_rationale(shap: dict, score: float, bias_gap: float) -> str:
+    """Build a case-specific one-sentence rationale from SHAP values."""
+    merit_keys = ["prior_felonies", "offense_severity", "age_at_arrest"]
+    top_merit = max(merit_keys, key=lambda k: abs(shap.get(k, 0.0)))
+    top_val = shap.get(top_merit, 0.0)
+    race_contrib = shap.get("race_caste", 0.0)
+    gender_contrib = shap.get("gender", 0.0)
+
+    rationale = f"Score primarily driven by **{top_merit.replace('_', ' ')}** ({top_val:+.1f} pts)."
+    if abs(race_contrib) >= 0.5:
+        rationale += f" Race group contributes {race_contrib:+.1f} pts of demographic inflation."
+    if abs(gender_contrib) >= 0.5:
+        rationale += f" Gender contributes {gender_contrib:+.1f} pts."
+    if bias_gap > 0:
+        rationale += f" Debiasing removes {bias_gap:.1f} pts of protected-attribute influence."
+    return rationale
+
+
 # ==============================================================================
-# TAB 1: ACCUSED ASSESSMENT & SHAP DEBIASING
+# VIEW 1: ACCUSED ASSESSMENT & SHAP DEBIASING
 # ==============================================================================
 if navigation == "1. Accused Assessment & SHAP Debiasing":
     st.title("Accused Assessment & Algorithmic Debiasing")
@@ -269,16 +322,45 @@ if navigation == "1. Accused Assessment & SHAP Debiasing":
                 unsafe_allow_html=True,
             )
 
-        # Disposition Comparison
+        # ── Task 4: Verdict Comparison with Badge + Boundary Distance + SHAP Rationale ──
+        verdict_changed = res["ai_original_verdict"] != res["ai_debiased_verdict"]
+        orig_score = res["ai_original_score"]
+        deb_score  = res["ai_debiased_score"]
+        orig_dist  = _dist_to_boundary(orig_score)
+        deb_dist   = _dist_to_boundary(deb_score)
+
+        if verdict_changed:
+            st.success(
+                f"**Verdict CHANGED by debiasing** — "
+                f"score moved {res['bias_gap']:.1f} pts across a verdict band boundary."
+            )
+        else:
+            st.info(
+                f"**Verdict UNCHANGED** — score moved {res['bias_gap']:.1f} pts "
+                f"but stayed within the same verdict band."
+            )
+
         col_disp1, col_disp2 = st.columns(2)
         with col_disp1:
             st.markdown("**Initial Baseline AI Recommendation:**")
-            st.error(f"**Verdict:** {res['ai_original_verdict']}")
-            st.caption(f"Rationale: {res['ai_original_reasoning']}")
+            if verdict_changed:
+                st.error(f"**Verdict:** {res['ai_original_verdict']}")
+            else:
+                st.info(f"**Verdict:** {res['ai_original_verdict']}")
+            st.caption(f"Score: {orig_score} / 100 — {orig_dist:.1f} pts from nearest verdict boundary")
+            # Case-specific SHAP rationale (original)
+            shap_rat = _shap_rationale(res["shap_values"], orig_score, 0.0)
+            st.caption(f"Rationale: {shap_rat}")
+
         with col_disp2:
             st.markdown("**Debiased Counterfactual AI Recommendation:**")
-            st.success(f"**Verdict:** {res['ai_debiased_verdict']}")
-            st.caption(f"Rationale: {res['ai_debiased_reasoning']}")
+            if verdict_changed:
+                st.success(f"**Verdict:** {res['ai_debiased_verdict']}")
+            else:
+                st.info(f"**Verdict:** {res['ai_debiased_verdict']}")
+            st.caption(f"Score: {deb_score} / 100 — {deb_dist:.1f} pts from nearest verdict boundary")
+            shap_rat_deb = _shap_rationale(res["shap_values"], deb_score, res["bias_gap"])
+            st.caption(f"Rationale: {shap_rat_deb}")
 
         # SHAP Feature Attribution Chart
         st.subheader("Explainable AI (SHAP) Factor Attribution")
@@ -312,9 +394,11 @@ if navigation == "1. Accused Assessment & SHAP Debiasing":
 
         st.info("Proceed to the **'2. Judicial Bench Review (HITL-1)'** tab in the sidebar to adjudicate this case.")
 
+    _page_footer()
+
 
 # ==============================================================================
-# TAB 2: JUDICIAL BENCH (HUMAN-IN-THE-LOOP LEVEL 1)
+# VIEW 2: JUDICIAL BENCH (HUMAN-IN-THE-LOOP LEVEL 1)
 # ==============================================================================
 elif navigation == "2. Judicial Bench Review (HITL-1)":
     st.title("Judicial Bench: Human-in-the-Loop Adjudication (HITL-1)")
@@ -423,9 +507,11 @@ elif navigation == "2. Judicial Bench Review (HITL-1)":
             except Exception as e:
                 st.error(f"Error committing to blockchain: {e}")
 
+    _page_footer()
+
 
 # ==============================================================================
-# TAB 3: CRYPTOGRAPHIC LEDGER & AUDIT GUARD
+# VIEW 3: CRYPTOGRAPHIC LEDGER & AUDIT GUARD
 # ==============================================================================
 elif navigation == "3. Cryptographic Ledger & Audit Guard":
     st.title("Cryptographic Ledger & Tamper Guard")
@@ -482,9 +568,11 @@ elif navigation == "3. Cryptographic Ledger & Audit Guard":
         )
         st.json(system.blockchain.chain[selected_blk_idx].to_dict())
 
+    _page_footer()
+
 
 # ==============================================================================
-# TAB 4: JUDICIAL OVERSIGHT BOARD (HUMAN-IN-THE-LOOP LEVEL 2)
+# VIEW 4: JUDICIAL OVERSIGHT BOARD (HUMAN-IN-THE-LOOP LEVEL 2)
 # ==============================================================================
 elif navigation == "4. Judicial Oversight Board (HITL-2)":
     st.title("Judicial Oversight Board: Disparity Audit (HITL-2)")
@@ -502,72 +590,364 @@ elif navigation == "4. Judicial Oversight Board (HITL-2)":
 
         st.subheader(f"Equity Compliance Dossier: {audit['judge_id']}")
 
-        # Status Banner
-        if audit["status"] == "FLAGGED_FOR_INVESTIGATION":
-            st.markdown(
-                f"""
-                <div class="board-flag">
-                    <span class="status-badge badge-critical">Investigation Recommended</span><br>
-                    <strong>Discretionary Sentencing Disparity Detected</strong><br>
-                    Sentencing audit detected statistically significant demographic variance in override patterns.<br>
-                    <strong>Disparate Impact Ratio:</strong> {audit['disparate_impact_ratio']} (EEOC Benchmark Standard ≥ 0.80) |
-                    <strong>Demographic Parity Gap:</strong> {audit['demographic_parity_gap']:.1%}
-                </div>
-                """,
-                unsafe_allow_html=True,
+        # Handle insufficient data (below MIN_CASES_BEFORE_FLAGGING)
+        if audit["status"] == "INSUFFICIENT_DATA":
+            st.info(
+                f"**Insufficient Data for Statistical Analysis**\n\n"
+                f"{audit.get('message', '')}\n\n"
+                "Statistical power analysis (View 6 — Audit Reliability) shows that "
+                "at least 20 cases per judge are required before a reliable bias assessment "
+                "can be made. The seeded demo history is illustrative only."
+            )
+            st.metric("Total Cases in Ledger", audit["total_cases"])
+            st.caption(
+                "To see the audit mechanism in action with sufficient data, commit verdicts "
+                "via View 2 until the judge has 20+ cases."
             )
         else:
+            # Status Banner (enough data)
+            if audit["status"] == "FLAGGED_FOR_INVESTIGATION":
+                st.markdown(
+                    f"""
+                    <div class="board-flag">
+                        <span class="status-badge badge-critical">Investigation Recommended</span><br>
+                        <strong>Discretionary Sentencing Disparity Detected</strong><br>
+                        Sentencing audit detected statistically significant demographic variance in override patterns.<br>
+                        <strong>Disparate Impact Ratio:</strong> {audit['disparate_impact_ratio']} (EEOC Benchmark Standard &ge; 0.80) |
+                        <strong>Demographic Parity Gap:</strong> {audit['demographic_parity_gap']:.1%}
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.markdown(
+                    f"""
+                    <div class="fast-track-pass">
+                        <span class="status-badge badge-success">Compliant</span><br>
+                        <strong>Statutory Equity Clearance</strong><br>
+                        Sentencing patterns and discretionary override distribution adhere to constitutional standards.<br>
+                        <strong>Disparate Impact Ratio:</strong> {audit['disparate_impact_ratio']} |
+                        <strong>Demographic Parity Gap:</strong> {audit['demographic_parity_gap']:.1%}
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+            col_st1, col_st2, col_st3, col_st4 = st.columns(4)
+            with col_st1:
+                st.metric("Total Cases Adjudicated", audit["total_cases"])
+            with col_st2:
+                st.metric("Discretionary Override Rate", f"{audit['override_rate']:.1%}")
+            with col_st3:
+                st.metric("Disparate Impact Ratio", f"{audit['disparate_impact_ratio']:.2f}")
+            with col_st4:
+                st.metric("Statistical p-value", f"{audit['p_value']}")
+
+            st.markdown("---")
+            c_comp1, c_comp2 = st.columns(2)
+
+            with c_comp1:
+                st.markdown("#### Marginalized Demographic Cohort")
+                m_stats = audit["marginalized_stats"]
+                st.write(f"- **Total Cases:** {m_stats['total']}")
+                st.write(f"- **Favorable Disposition Rate (Bail/Probation):** {m_stats['favorable_rate']:.1%}")
+                st.write(f"- **Custodial Detention Rate:** {m_stats['harsh_rate']:.1%}")
+                st.write(f"- **Discretionary Overrides to Harsher Disposition:** {m_stats['overrides_to_harsh']}")
+
+            with c_comp2:
+                st.markdown("#### General / Control Demographic Cohort")
+                g_stats = audit["general_stats"]
+                st.write(f"- **Total Cases:** {g_stats['total']}")
+                st.write(f"- **Favorable Disposition Rate (Bail/Probation):** {g_stats['favorable_rate']:.1%}")
+                st.write(f"- **Custodial Detention Rate:** {g_stats['harsh_rate']:.1%}")
+                st.write(f"- **Discretionary Overrides to Lenient Disposition:** {g_stats['overrides_to_lenient']}")
+
+            # Findings and Actionable Next Steps
+            st.subheader("Statistical Audit Findings")
+            for finding in audit["findings"]:
+                st.markdown(f"- {finding}")
+
+            if audit["requires_board_review"]:
+                st.error(
+                    "Board Directive: Initiate formal administrative review to examine case files "
+                    "where discretionary judicial overrides were exercised against marginalized defendants."
+                )
+            else:
+                st.success("Board Directive: Routine compliance clearance; sentencing variance remains within acceptable bounds.")
+
+    _page_footer()
+
+
+# ==============================================================================
+# VIEW 5: MODEL FAIRNESS REPORT
+# ==============================================================================
+elif navigation == "5. Model Fairness Report":
+    st.title("Model Fairness Report")
+    st.write(
+        "Compares COMPAS reference scores, Model A (COMPAS copy), and Model B (real-outcome logistic regression), "
+        "with and without counterfactual debiasing. All numbers are test-set only (70/30 split, seed 42)."
+    )
+
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+    report = _load_json(os.path.join(_HERE, "results", "fairness_report.json"))
+
+    if report is None:
+        st.info(
+            "Fairness report not yet generated.  \n"
+            "Run: `python fairness_eval.py` in the project directory to produce it."
+        )
+    else:
+        st.caption(f"Generated: {report.get('generated_at', 'unknown')}  |  "
+                   f"Train n={report.get('n_train')}  |  Test n={report.get('n_test')}")
+
+        # ── Overall Metrics Table ─────────────────────────────────────────────
+        st.subheader("Overall Metrics by Model Variant")
+        rows = []
+        for key, ev in report["models"].items():
+            ov = ev["overall"]
+            g = ev["gaps"]
+            rows.append({
+                "Model": ev["label"],
+                "Accuracy": round(ov["accuracy"], 4),
+                "ROC-AUC": round(ov.get("roc_auc", float("nan")), 4),
+                "FPR": round(ov["fpr"], 4),
+                "FNR": round(ov["fnr"], 4),
+                "Selection Rate": round(ov["selection_rate"], 4),
+                "Brier Score": round(ov.get("brier_score", float("nan")), 4),
+                "FPR Gap (AA-CA)": round(g["fpr_gap_AA_minus_CA"], 4),
+                "EOD": round(g["equalized_odds_diff"], 4),
+            })
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+        # ── FPR / FNR Bar Chart by Group ──────────────────────────────────────
+        st.subheader("FPR & FNR by Race Group")
+        group_rows = []
+        for key, ev in report["models"].items():
+            for grp, gm in ev.get("by_group", {}).items():
+                group_rows.append({
+                    "Model": ev["label"][:30],
+                    "Group": grp,
+                    "FPR": gm["fpr"],
+                    "FNR": gm["fnr"],
+                })
+        if group_rows:
+            try:
+                import altair as alt
+                gdf = pd.DataFrame(group_rows)
+                gdf_melt = gdf.melt(
+                    id_vars=["Model", "Group"],
+                    value_vars=["FPR", "FNR"],
+                    var_name="Metric",
+                    value_name="Rate",
+                )
+                chart = (
+                    alt.Chart(gdf_melt)
+                    .mark_bar()
+                    .encode(
+                        x=alt.X("Model:N", axis=alt.Axis(labelAngle=-30), title=None),
+                        y=alt.Y("Rate:Q", scale=alt.Scale(domain=[0, 1])),
+                        color="Group:N",
+                        column=alt.Column("Metric:N"),
+                        tooltip=["Model", "Group", "Metric", alt.Tooltip("Rate:Q", format=".3f")],
+                    )
+                    .properties(width=220, height=280)
+                )
+                st.altair_chart(chart, use_container_width=False)
+            except Exception:
+                st.dataframe(pd.DataFrame(group_rows), use_container_width=True, hide_index=True)
+
+        # ── Calibration Chart (Model B with race/gender) ──────────────────────
+        st.subheader("Calibration — Model B (Real Outcome, with race/gender)")
+        cal_data = report["models"].get("model_b_with_demo", {}).get("calibration", [])
+        if cal_data:
+            cal_df = pd.DataFrame(cal_data)
+            try:
+                import altair as alt
+                cal_chart = (
+                    alt.Chart(cal_df)
+                    .mark_line(point=True)
+                    .encode(
+                        x=alt.X("mean_predicted:Q", title="Mean Predicted Probability", scale=alt.Scale(domain=[0, 1])),
+                        y=alt.Y("actual_reoffend_rate:Q", title="Actual Reoffend Rate", scale=alt.Scale(domain=[0, 1])),
+                        tooltip=[
+                            alt.Tooltip("bin:N", title="Bin"),
+                            alt.Tooltip("mean_predicted:Q", format=".3f"),
+                            alt.Tooltip("actual_reoffend_rate:Q", format=".3f"),
+                            alt.Tooltip("n:Q", title="N"),
+                        ],
+                    )
+                    .properties(width=400, height=300, title="Calibration Curve (5 equal-size bins)")
+                )
+                # Perfect calibration line
+                line_df = pd.DataFrame({"x": [0, 1], "y": [0, 1]})
+                ref_line = alt.Chart(line_df).mark_line(color="gray", strokeDash=[4, 4]).encode(x="x:Q", y="y:Q")
+                st.altair_chart(cal_chart + ref_line, use_container_width=False)
+            except Exception:
+                st.dataframe(cal_df[["bin", "mean_predicted", "actual_reoffend_rate", "n"]],
+                             use_container_width=True, hide_index=True)
+
+        # ── Accuracy vs Fairness Scatter ──────────────────────────────────────
+        st.subheader("Accuracy vs Equalized-Odds Difference — Mitigation Methods")
+        mit_data = report.get("mitigation_comparison", [])
+        if mit_data:
+            mit_df = pd.DataFrame(mit_data)
+            try:
+                import altair as alt
+                scatter = (
+                    alt.Chart(mit_df)
+                    .mark_circle(size=120)
+                    .encode(
+                        x=alt.X("equalized_odds_diff:Q", title="Equalized-Odds Difference (lower = fairer)"),
+                        y=alt.Y("accuracy:Q", title="Accuracy", scale=alt.Scale(domain=[0.55, 0.75])),
+                        color=alt.Color("method:N", legend=alt.Legend(title="Method")),
+                        tooltip=[
+                            alt.Tooltip("method:N"),
+                            alt.Tooltip("accuracy:Q", format=".4f"),
+                            alt.Tooltip("equalized_odds_diff:Q", format=".4f"),
+                            alt.Tooltip("fpr_gap:Q", format=".4f"),
+                        ],
+                    )
+                    .properties(width=500, height=320, title="Accuracy vs Fairness Trade-off")
+                )
+                text = scatter.mark_text(align="left", dx=8, fontSize=10).encode(text="method:N")
+                st.altair_chart(scatter + text, use_container_width=False)
+            except Exception:
+                st.dataframe(mit_df[["method", "accuracy", "equalized_odds_diff", "fpr_gap"]],
+                             use_container_width=True, hide_index=True)
+
+        # ── Plain-language Findings ───────────────────────────────────────────
+        with st.expander("What This Shows", expanded=True):
+            for i, finding in enumerate(report.get("findings", []), 1):
+                st.markdown(f"**{i}.** {finding}")
+
+        with st.expander("Limitations"):
             st.markdown(
-                f"""
-                <div class="fast-track-pass">
-                    <span class="status-badge badge-success">Compliant</span><br>
-                    <strong>Statutory Equity Clearance</strong><br>
-                    Sentencing patterns and discretionary override distribution adhere to constitutional standards.<br>
-                    <strong>Disparate Impact Ratio:</strong> {audit['disparate_impact_ratio']} |
-                    <strong>Demographic Parity Gap:</strong> {audit['demographic_parity_gap']:.1%}
-                </div>
-                """,
-                unsafe_allow_html=True,
+                """
+                - Race is restricted to African-American / Caucasian only (COMPAS data limitation).
+                - Model A replicates COMPAS's own scoring — it is not an independent model.
+                - Counterfactual debiasing cannot eliminate proxy bias through correlated features
+                  (prior record, charge severity). See findings above.
+                - All results apply to Broward County, FL (2013–2014). Do not extrapolate.
+                - **This prototype is NOT suitable for real sentencing or bail decisions.**
+                """
             )
 
-        col_st1, col_st2, col_st3, col_st4 = st.columns(4)
-        with col_st1:
-            st.metric("Total Cases Adjudicated", audit["total_cases"])
-        with col_st2:
-            st.metric("Discretionary Override Rate", f"{audit['override_rate']:.1%}")
-        with col_st3:
-            st.metric("Disparate Impact Ratio", f"{audit['disparate_impact_ratio']:.2f}")
-        with col_st4:
-            st.metric("Statistical p-value", f"{audit['p_value']}")
+    _page_footer()
 
-        st.markdown("---")
-        c_comp1, c_comp2 = st.columns(2)
 
-        with c_comp1:
-            st.markdown("#### Marginalized Demographic Cohort")
-            m_stats = audit["marginalized_stats"]
-            st.write(f"- **Total Cases:** {m_stats['total']}")
-            st.write(f"- **Favorable Disposition Rate (Bail/Probation):** {m_stats['favorable_rate']:.1%}")
-            st.write(f"- **Custodial Detention Rate:** {m_stats['harsh_rate']:.1%}")
-            st.write(f"- **Discretionary Overrides to Harsher Disposition:** {m_stats['overrides_to_harsh']}")
+# ==============================================================================
+# VIEW 6: AUDIT RELIABILITY
+# ==============================================================================
+elif navigation == "6. Audit Reliability":
+    st.title("Audit Reliability — Statistical Power Analysis")
+    st.write(
+        "How many cases per judge does the Judicial Bias Monitor need before it can reliably "
+        "detect biased sentencing patterns? Results from 500 Monte Carlo simulations per setting, "
+        "using real COMPAS defendants and the project's own JudicialBiasMonitor logic."
+    )
 
-        with c_comp2:
-            st.markdown("#### General / Control Demographic Cohort")
-            g_stats = audit["general_stats"]
-            st.write(f"- **Total Cases:** {g_stats['total']}")
-            st.write(f"- **Favorable Disposition Rate (Bail/Probation):** {g_stats['favorable_rate']:.1%}")
-            st.write(f"- **Custodial Detention Rate:** {g_stats['harsh_rate']:.1%}")
-            st.write(f"- **Discretionary Overrides to Lenient Disposition:** {g_stats['overrides_to_lenient']}")
+    _HERE = os.path.dirname(os.path.abspath(__file__))
+    audit_report = _load_json(os.path.join(_HERE, "results", "audit_validation.json"))
 
-        # Findings and Actionable Next Steps
-        st.subheader("Statistical Audit Findings")
-        for finding in audit["findings"]:
-            st.markdown(f"- {finding}")
+    if audit_report is None:
+        st.info(
+            "Audit validation results not yet generated.  \n"
+            "Run: `python audit_validation.py` in the project directory to produce them."
+        )
+    else:
+        st.caption(f"Generated: {audit_report.get('generated_at', 'unknown')}  |  "
+                   f"{audit_report.get('n_simulations', 500)} simulations per setting")
 
-        if audit["requires_board_review"]:
-            st.error(
-                "Board Directive: Initiate formal administrative review to examine case files "
-                "where discretionary judicial overrides were exercised against marginalized defendants."
+        grid = audit_report.get("results_grid", [])
+        if grid:
+            df_grid = pd.DataFrame(grid)
+            bias_probs = sorted(df_grid["bias_prob"].unique())
+
+            # ── Detection Rate Line Chart ─────────────────────────────────────
+            st.subheader("Detection Rate (Biased Judge Correctly Flagged)")
+            try:
+                import altair as alt
+                det_chart = (
+                    alt.Chart(df_grid)
+                    .mark_line(point=True)
+                    .encode(
+                        x=alt.X("n_cases:O", title="Cases per Judge"),
+                        y=alt.Y("detection_rate:Q", title="Detection Rate", scale=alt.Scale(domain=[0, 1])),
+                        color=alt.Color("bias_prob:N", title="Bias Prob (p)"),
+                        tooltip=[
+                            alt.Tooltip("n_cases:O", title="N Cases"),
+                            alt.Tooltip("bias_prob:N", title="Bias Prob"),
+                            alt.Tooltip("detection_rate:Q", format=".3f", title="Detection Rate"),
+                        ],
+                    )
+                    .properties(width=500, height=300, title="Detection Rate vs Cases per Judge")
+                )
+                # 80% threshold line
+                thresh_df = pd.DataFrame({"y": [0.80]})
+                thresh_line = (
+                    alt.Chart(thresh_df)
+                    .mark_rule(color="red", strokeDash=[4, 4])
+                    .encode(y="y:Q")
+                )
+                st.altair_chart(det_chart + thresh_line, use_container_width=False)
+                st.caption("Red dashed line = 80% detection threshold (reliability target).")
+            except Exception:
+                st.line_chart(df_grid.pivot(index="n_cases", columns="bias_prob", values="detection_rate"))
+
+            # ── False-Flag Rate Line Chart ────────────────────────────────────
+            st.subheader("False-Flag Rate (Fair Judge Incorrectly Flagged)")
+            try:
+                import altair as alt
+                ff_chart = (
+                    alt.Chart(df_grid)
+                    .mark_line(point=True)
+                    .encode(
+                        x=alt.X("n_cases:O", title="Cases per Judge"),
+                        y=alt.Y("false_flag_rate:Q", title="False-Flag Rate", scale=alt.Scale(domain=[0, 1])),
+                        color=alt.Color("bias_prob:N", title="Bias Prob (p)"),
+                        tooltip=[
+                            alt.Tooltip("n_cases:O", title="N Cases"),
+                            alt.Tooltip("bias_prob:N", title="Bias Prob"),
+                            alt.Tooltip("false_flag_rate:Q", format=".3f", title="False-Flag Rate"),
+                        ],
+                    )
+                    .properties(width=500, height=300, title="False-Flag Rate vs Cases per Judge")
+                )
+                thresh_df2 = pd.DataFrame({"y": [0.05]})
+                thresh_line2 = (
+                    alt.Chart(thresh_df2)
+                    .mark_rule(color="orange", strokeDash=[4, 4])
+                    .encode(y="y:Q")
+                )
+                st.altair_chart(ff_chart + thresh_line2, use_container_width=False)
+                st.caption("Orange dashed line = 5% false-flag tolerance threshold.")
+            except Exception:
+                st.line_chart(df_grid.pivot(index="n_cases", columns="bias_prob", values="false_flag_rate"))
+
+            # ── Summary Table ─────────────────────────────────────────────────
+            st.subheader("Summary Grid")
+            pivot_det = df_grid.pivot(index="n_cases", columns="bias_prob", values="detection_rate")
+            pivot_det.columns = [f"det_rate p={c}" for c in pivot_det.columns]
+            pivot_ff = df_grid.pivot(index="n_cases", columns="bias_prob", values="false_flag_rate")
+            pivot_ff.columns = [f"ff_rate p={c}" for c in pivot_ff.columns]
+            summary = pd.concat([pivot_det, pivot_ff], axis=1).reset_index()
+            st.dataframe(summary, use_container_width=True, hide_index=True)
+
+        # ── Minimum N Summary ─────────────────────────────────────────────────
+        st.subheader("Minimum Cases for Reliable Detection")
+        min_n_map = audit_report.get("min_n_for_reliable_detection_by_bias_prob", {})
+        overall_min = audit_report.get("overall_min_n_at_bias_0_2_plus")
+        for p, n in min_n_map.items():
+            val = str(n) if n else "Not achieved in tested range"
+            st.markdown(f"- **Bias probability p={p}:** minimum n = **{val}**")
+        if overall_min:
+            st.success(f"**Overall minimum n for p >= 0.2:** {overall_min} cases per judge.")
+
+        # ── Plain-text Conclusion ─────────────────────────────────────────────
+        with st.expander("Conclusion & Interpretation", expanded=True):
+            st.markdown(audit_report.get("conclusion", ""))
+            st.markdown(
+                f"\n**Simulation design:** {audit_report.get('simulation_design', '')}"
             )
-        else:
-            st.success("Board Directive: Routine compliance clearance; sentencing variance remains within acceptable bounds.")
+
+    _page_footer()

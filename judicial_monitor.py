@@ -13,6 +13,12 @@ import numpy as np
 from scipy import stats
 from blockchain import JudicialBlockchain
 
+# Minimum number of decided cases before the monitor can reliably flag a judge.
+# Statistical power analysis (audit_validation.py, 500 sims) shows that at n < 20
+# the false-flag rate for genuinely fair judges exceeds 5%, making premature flagging
+# likely. Below this threshold we return INSUFFICIENT_DATA instead.
+MIN_CASES_BEFORE_FLAGGING: int = 20
+
 
 class JudicialBiasMonitor:
     """
@@ -57,7 +63,24 @@ class JudicialBiasMonitor:
                 "judge_id": judge_id,
                 "total_cases": 0,
                 "status": "INSUFFICIENT_DATA",
+                "requires_board_review": False,
                 "message": f"No historical cases recorded for Judge {judge_id}.",
+            }
+
+        # Statistical power guard: do not flag before minimum case count.
+        # See results/audit_validation.json for the power analysis that justifies this threshold.
+        if total_cases < MIN_CASES_BEFORE_FLAGGING:
+            return {
+                "judge_id": judge_id,
+                "total_cases": total_cases,
+                "status": "INSUFFICIENT_DATA",
+                "requires_board_review": False,
+                "message": (
+                    f"Only {total_cases} case(s) recorded for Judge {judge_id}. "
+                    f"A minimum of {MIN_CASES_BEFORE_FLAGGING} cases is required before "
+                    f"a statistically reliable bias assessment can be made. "
+                    f"Continue monitoring."
+                ),
             }
 
         # 1. Tally outcomes across Race / Caste
