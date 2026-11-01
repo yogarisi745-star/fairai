@@ -49,16 +49,16 @@ class LegalBiasMitigationSystem:
         top_sens, top_sens_impact = max(sensitive.items(), key=lambda kv: abs(kv[1]))
         if is_high_bias:
             triage_guidance = (
-                f"🚨 HIGH AI BIAS WARNING (Bias Gap: +{bias_gap} pts). "
-                f"The AI model heavily penalized sensitive demographic attributes "
+                f"[SCRUTINY REQUIRED] High Demographic Disparity Detected (Bias Gap: +{bias_gap} pts). "
+                f"The historical baseline model attributed significant score inflation to protected attributes "
                 f"({top_sens}: {top_sens_impact:+} pts). "
-                f"Judge scrutiny MANDATORY: Consider overriding AI original output with debiased recommendation."
+                f"Mandatory Judicial Review: Presiding judge should review counterfactual debiased recommendation."
             )
         else:
             triage_guidance = (
-                f"✅ LOW AI BIAS (Bias Gap: {bias_gap} pts). "
-                f"Prediction is overwhelmingly grounded in legitimate criminal history merits. "
-                f"Eligible for judicial fast-tracking with standard review."
+                f"[STANDARD REVIEW] Low Demographic Disparity (Bias Gap: {bias_gap} pts). "
+                f"Score variance is primarily attributable to objective criminal history merits. "
+                f"Eligible for expedited judicial review."
             )
 
         return {

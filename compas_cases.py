@@ -104,10 +104,10 @@ def build_benchmark_cases(df: pd.DataFrame) -> List[Dict[str, Any]]:
     return [
         _row_to_case(c0, _describe(c0, "BIAS CORRECTED IN TIER: Raw 50.1 -> Debiased 44.2 (Demographic gap removed)."), "Bias Reduced"),
         _row_to_case(c1, _describe(c1, "MERIT-DRIVEN BENCHMARK: High risk driven entirely by 13 priors. Zero demographic gap."), "Merit-Driven"),
-        _row_to_case(c2, _describe(c2, "💥 VERDICT FLIP (Probation -> Bail): 0 priors, first offense. Demographic inflation removed."), "Flips: Probation->Bail"),
+        _row_to_case(c2, _describe(c2, "VERDICT RECLASSIFICATION (Probation -> Bail): First offense; demographic inflation removed."), "Flips: Probation->Bail"),
         _row_to_case(c3, _describe(c3, "COUNTERFACTUAL TWIN: Exactly identical age & criminal record as Case #0, Caucasian group."), "Twin of Case #0"),
-        _row_to_case(c4, _describe(c4, "💥 VERDICT FLIP (Remand -> Probation): Severe detention recommendation corrected to Probation."), "Flips: Custody->Probation"),
-        _row_to_case(c5, _describe(c5, "💥 VERDICT FLIP (Probation -> Bail): Non-violent 0-prior defendant granted full bail release."), "Flips: Probation->Bail"),
+        _row_to_case(c4, _describe(c4, "VERDICT RECLASSIFICATION (Custody -> Probation): Severe detention recommendation corrected to Probation."), "Flips: Custody->Probation"),
+        _row_to_case(c5, _describe(c5, "VERDICT RECLASSIFICATION (Probation -> Bail): Non-violent zero-prior defendant recommended for pre-trial release."), "Flips: Probation->Bail"),
     ]
 
 
