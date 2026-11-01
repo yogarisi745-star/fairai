@@ -5,6 +5,14 @@ Contains realistic case profiles illustrating:
 1. High AI Bias cases where demographics unfairly inflate recidivism risk.
 2. Low AI Bias cases driven purely by legitimate criminal history merits.
 3. Historical seed data demonstrating judicial bias trends across multiple judges.
+
+COMPAS data mode note:
+  With real COMPAS-fitted weights (race ~5.93 pts, gender_Female ~0.82 pts,
+  income 0.0 pts) the maximum demographic bias gap is ~6.75 pts.
+  The HIGH_BIAS_DETECTED threshold (10.0 pts) reflects the original
+  hand-coded weights and is intentionally left unchanged to show that
+  real-world COMPAS data produces a measurably smaller—but still real—
+  racial disparity than hand-set weights assumed.
 """
 
 from typing import Any, Dict, List
@@ -14,11 +22,16 @@ BENCHMARK_CASES = [
         "case_id": "CRIM-2026-7041",
         "accused_id": "ACC-7041",
         "accused_name": "Arjun Kumar",
-        "description": "Accused of non-violent petty retail theft (store merchandise valued at $120). No weapons involved.",
+        "description": (
+            "Accused of non-violent petty retail theft (store merchandise valued at $120). "
+            "No weapons involved. Demonstrates AI demographic bias: Marginalized race "
+            "and Female gender inflate the risk score by ~6.75 pts relative to the "
+            "counterfactual debiased baseline (real COMPAS-fitted coefficients)."
+        ),
         "demographics": {
             "race_caste": "Marginalized",
             "income_level": "Low",
-            "gender": "Male",
+            "gender": "Female",   # changed to Female to maximise observable race+gender gap
         },
         "merits": {
             "prior_felonies": 0,

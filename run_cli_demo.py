@@ -12,6 +12,15 @@ Demonstrates the 6-stage pipeline:
 
 import sys
 import json
+import io
+
+# Ensure stdout supports Unicode (emoji) on Windows cp1252 consoles.
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 from legal_system import LegalBiasMitigationSystem
 from demo_cases import BENCHMARK_CASES
 

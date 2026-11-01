@@ -98,6 +98,14 @@ st.sidebar.markdown(
     """
 )
 
+# Show model weight source in sidebar
+from model import LegalRiskModel as _LRM
+_weight_src = _LRM.WEIGHT_SOURCE
+if "COMPAS" in _weight_src:
+    st.sidebar.success(f"🔬 Model weights: **{_weight_src}**")
+else:
+    st.sidebar.warning(f"⚠️ Model weights: **{_weight_src}** (CSV not found)")
+
 # ==============================================================================
 # TAB 1: ACCUSED ASSESSMENT & SHAP DEBIASING
 # ==============================================================================
@@ -143,6 +151,7 @@ if navigation == "1. Accused Assessment & SHAP Debiasing":
                 ["Low", "Medium", "High"],
                 index=["Low", "Medium", "High"].index(active_data["demographics"].get("income_level", "Medium")),
             )
+            st.caption("ℹ️ Not available in the COMPAS dataset — no effect on the score in data-fitted mode.")
             gender = st.selectbox(
                 "Gender",
                 ["Male", "Female", "Non-binary"],
@@ -177,6 +186,7 @@ if navigation == "1. Accused Assessment & SHAP Debiasing":
                 index=int(active_data["merits"].get("bail_failure_history", 0)),
                 format_func=lambda x: "Yes" if x == 1 else "No",
             )
+            st.caption("ℹ️ Not available in the COMPAS dataset — no effect on the score in data-fitted mode.")
         with c5:
             community_ties = st.slider(
                 "Community Ties Score (1-10)",
@@ -185,6 +195,7 @@ if navigation == "1. Accused Assessment & SHAP Debiasing":
                 value=int(active_data["merits"].get("community_ties_score", 5)),
                 help="Employment stability, resident duration, family dependencies.",
             )
+            st.caption("ℹ️ Not available in the COMPAS dataset — no effect on the score in data-fitted mode.")
             charge_desc = st.text_area(
                 "Charge Description",
                 value=active_data.get("description", "Non-violent allegation."),
