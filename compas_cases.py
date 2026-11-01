@@ -42,16 +42,12 @@ def _row_to_case(row: pd.Series, description: str) -> Dict[str, Any]:
         "description": description,
         "demographics": {
             "race_caste": row["race_caste"],
-            "income_level": "Medium",  # not in COMPAS (inactive feature)
             "gender": row["gender"],
         },
         "merits": {
-            "prior_felonies": int(row["prior_felonies"]),
-            "prior_misdemeanors": 0,   # COMPAS only has a total priors count
+            "prior_felonies":   int(row["prior_felonies"]),
             "offense_severity": int(row["offense_severity"]),
-            "age_at_arrest": int(row["age_at_arrest"]),
-            "bail_failure_history": 0,  # not in COMPAS
-            "community_ties_score": 5,  # not in COMPAS
+            "age_at_arrest":    int(row["age_at_arrest"]),
         },
         "compas_decile_score": int(row["decile_score"]),
         "compas_race_label": row["race"],

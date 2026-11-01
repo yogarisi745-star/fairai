@@ -27,81 +27,35 @@ _FALLBACK_BENCHMARK_CASES = [
         "accused_id": "ACC-7041",
         "accused_name": "Demo Defendant 1",
         "description": (
-            "Accused of non-violent petty retail theft (store merchandise valued at $120). "
-            "No weapons involved. Demonstrates AI demographic bias: Marginalized race "
-            "and Female gender inflate the risk score by ~6.75 pts relative to the "
-            "counterfactual debiased baseline (real COMPAS-fitted coefficients)."
+            "Non-violent petty retail theft. Demonstrates demographic bias: "
+            "Marginalized + Female inflates the score relative to the debiased baseline."
         ),
-        "demographics": {
-            "race_caste": "Marginalized",
-            "income_level": "Low",
-            "gender": "Female",   # changed to Female to maximise observable race+gender gap
-        },
-        "merits": {
-            "prior_felonies": 0,
-            "prior_misdemeanors": 1,
-            "offense_severity": 3,  # Scale 1-10
-            "age_at_arrest": 24,
-            "bail_failure_history": 0,
-            "community_ties_score": 7,  # Local resident, primary family breadwinner
-        },
+        "demographics": {"race_caste": "Marginalized", "gender": "Female"},
+        "merits": {"prior_felonies": 0, "offense_severity": 3, "age_at_arrest": 24},
     },
     {
         "case_id": "CRIM-2026-8102",
         "accused_id": "ACC-8102",
         "accused_name": "Demo Defendant 2",
-        "description": "Arrested for armed commercial burglary with weapon possession and violent assault threat.",
-        "demographics": {
-            "race_caste": "General",
-            "income_level": "Medium",
-            "gender": "Male",
-        },
-        "merits": {
-            "prior_felonies": 3,
-            "prior_misdemeanors": 4,
-            "offense_severity": 9,
-            "age_at_arrest": 38,
-            "bail_failure_history": 1,
-            "community_ties_score": 2,
-        },
+        "description": "Armed commercial burglary with weapon possession and violent assault threat.",
+        "demographics": {"race_caste": "General", "gender": "Male"},
+        "merits": {"prior_felonies": 3, "offense_severity": 9, "age_at_arrest": 38},
     },
     {
         "case_id": "CRIM-2026-9215",
         "accused_id": "ACC-9215",
         "accused_name": "Demo Defendant 3",
-        "description": "First-time offense, accused of check fraud under financial duress to pay medical bills.",
-        "demographics": {
-            "race_caste": "Marginalized",
-            "income_level": "Low",
-            "gender": "Female",
-        },
-        "merits": {
-            "prior_felonies": 0,
-            "prior_misdemeanors": 0,
-            "offense_severity": 2,
-            "age_at_arrest": 29,
-            "bail_failure_history": 0,
-            "community_ties_score": 8,
-        },
+        "description": "First-time check fraud under financial duress.",
+        "demographics": {"race_caste": "Marginalized", "gender": "Female"},
+        "merits": {"prior_felonies": 0, "offense_severity": 2, "age_at_arrest": 29},
     },
     {
         "case_id": "CRIM-2026-5534",
         "accused_id": "ACC-5534",
         "accused_name": "Demo Defendant 4",
         "description": "Corporate embezzlement and falsification of financial accounts.",
-        "demographics": {
-            "race_caste": "General",
-            "income_level": "High",
-            "gender": "Male",
-        },
-        "merits": {
-            "prior_felonies": 1,
-            "prior_misdemeanors": 2,
-            "offense_severity": 6,
-            "age_at_arrest": 45,
-            "bail_failure_history": 0,
-            "community_ties_score": 6,
-        },
+        "demographics": {"race_caste": "General", "gender": "Male"},
+        "merits": {"prior_felonies": 1, "offense_severity": 6, "age_at_arrest": 45},
     },
 ]
 

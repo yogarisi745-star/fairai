@@ -40,12 +40,6 @@ CHARGE_SEVERITY_MAP = {
     "M": 3,   # Misdemeanor
 }
 
-# Baseline constants for features absent from COMPAS.
-# These are held fixed for every row so their regression coefficients -> 0.
-INCOME_BASELINE = "Medium"
-COMMUNITY_TIES_BASELINE = 5.0   # mid-point of 1-10 scale
-BAIL_FAILURE_BASELINE = 0.0     # no bail failure history
-
 
 def load_compas(path: str) -> Tuple[pd.DataFrame, int]:
     """
@@ -102,21 +96,12 @@ def load_compas(path: str) -> Tuple[pd.DataFrame, int]:
     df["age_at_arrest"] = df["age"]
 
     # Prior record.
-    # NOTE: COMPAS provides only total priors_count, not a felony/misdemeanor
-    # breakdown. We assign all priors to prior_felonies and set
-    # prior_misdemeanors = 0. The fitted weight for prior_felonies therefore
-    # captures the combined prior-record effect.
-    df["prior_felonies"]      = df["priors_count"]
-    df["prior_misdemeanors"]  = 0
+    # NOTE: COMPAS provides only total priors_count (no felony/misdemeanor split).
+    # All priors mapped to prior_felonies. prior_misdemeanors removed (always 0).
+    df["prior_felonies"] = df["priors_count"]
 
     # Offense severity from charge degree
     df["offense_severity"] = df["c_charge_degree"].map(CHARGE_SEVERITY_MAP).fillna(3)
-
-    # Features absent from COMPAS — held at baseline constants so regression
-    # gives them 0.0 weight (no fabricated data).
-    df["income_level"]          = INCOME_BASELINE
-    df["community_ties_score"]  = COMMUNITY_TIES_BASELINE
-    df["bail_failure_history"]  = BAIL_FAILURE_BASELINE
 
     # Target: rescale decile_score (1-10) to 0-100
     df["target_score"] = (df["decile_score"] - 1) / 9 * 100
@@ -124,16 +109,13 @@ def load_compas(path: str) -> Tuple[pd.DataFrame, int]:
     # Keep only project-relevant columns
     keep_cols = [
         "race_caste", "gender",
-        "age_at_arrest", "prior_felonies", "prior_misdemeanors",
-        "offense_severity", "income_level",
-        "community_ties_score", "bail_failure_history",
+        "age_at_arrest", "prior_felonies", "offense_severity",
         "target_score",
-        # keep original for diagnostics
+        # keep originals for diagnostics / demo-case building
         "race", "sex", "decile_score", "c_charge_degree", "priors_count",
-        # used to build demo cases from real rows (names are never kept)
         "id", "c_charge_desc", "two_year_recid",
     ]
-    df = df[keep_cols].reset_index(drop=True)
+    df = df[[c for c in keep_cols if c in df.columns]].reset_index(drop=True)
 
     return df, total_dropped
 
@@ -188,62 +170,47 @@ def fit_weights(df: pd.DataFrame):
     intercept   = float(coeffs[0])
     feat_coeffs = coeffs[1:]
 
-    # ── Assemble WEIGHTS dict (all 14 project keys must be present) ───────────
+    # ── Assemble WEIGHTS dict (only active features) ───────────────────────────
     WEIGHTS: Dict[str, float] = {}
 
     # Active numerical / merit weights (data-derived)
     for i, col in enumerate(active_num_cols):
         WEIGHTS[col] = float(feat_coeffs[i])
 
-    # Inactive numerical features — constant in data → regression weight 0.0
-    WEIGHTS["prior_misdemeanors"]   = 0.0
-    WEIGHTS["bail_failure_history"] = 0.0
-    WEIGHTS["community_ties_score"] = 0.0
-
-    # Race dummy: drop_first drops "race_caste_General"
+    # Race dummy: Marginalized gets fitted coeff, General is reference (0.0)
     race_cols  = list(race_dummies.columns)   # ["race_caste_Marginalized"]
     race_offset = len(active_num_cols)
     for i, col in enumerate(race_cols):
         WEIGHTS[col] = float(feat_coeffs[race_offset + i])
-    WEIGHTS["race_caste_General"] = 0.0       # reference category
+    WEIGHTS["race_caste_General"] = 0.0
 
-    # Income — constant in data → 0.0
-    WEIGHTS["income_level_Medium"] = 0.0
-    WEIGHTS["income_level_Low"]    = 0.0
-    WEIGHTS["income_level_High"]   = 0.0
-
-    # Gender dummy: drop_first drops "gender_Male"
+    # Gender dummy: Female gets fitted coeff, Male is reference (0.0)
     gender_cols   = list(gender_dummies.columns)  # ["gender_Female"]
     gender_offset = race_offset + len(race_cols)
     for i, col in enumerate(gender_cols):
         WEIGHTS[col] = float(feat_coeffs[gender_offset + i])
-    WEIGHTS["gender_Male"]      = 0.0  # reference category
+    WEIGHTS["gender_Male"] = 0.0
     # Non-binary not in COMPAS — carry original hand-coded value (NOT data-derived)
     WEIGHTS["gender_Non-binary"] = 2.0
+
+    return WEIGHTS, intercept
 
     return WEIGHTS, intercept
 
 
 def compute_population_baseline(df: pd.DataFrame) -> dict:
     """
-    Compute data-driven POPULATION_BASELINE means/modes from the fitted DataFrame.
-    Categorical fields use the project's "neutral" reference values
-    (General / Medium / Male) rather than the statistical mode, so that
-    the counterfactual debiasing in xai_shap.py continues to work correctly.
+    Compute data-driven POPULATION_BASELINE from the fitted DataFrame.
+    Categorical fields use project reference values (General / Male) so that
+    counterfactual debiasing in xai_shap.py works correctly.
     """
     baseline = {
         # Numeric: data-driven means
-        "prior_felonies":       float(round(df["prior_felonies"].mean(), 1)),
-        "prior_misdemeanors":   0.0,   # constant in fitted data
-        "offense_severity":     float(round(df["offense_severity"].mean(), 1)),
-        "age_at_arrest":        float(round(df["age_at_arrest"].mean(), 1)),
-        "bail_failure_history": 0.0,   # constant baseline
-        "community_ties_score": 5.0,   # constant baseline mid-point
-
-        # Categorical: project reference levels (NOT statistical mode)
-        # These must match the counterfactual debiasing neutralisation in xai_shap.py
-        "race_caste":   "General",
-        "income_level": "Medium",
-        "gender":       "Male",
+        "prior_felonies":   float(round(df["prior_felonies"].mean(), 1)),
+        "offense_severity": float(round(df["offense_severity"].mean(), 1)),
+        "age_at_arrest":    float(round(df["age_at_arrest"].mean(), 1)),
+        # Categorical: reference levels for counterfactual debiasing
+        "race_caste": "General",
+        "gender":     "Male",
     }
     return baseline

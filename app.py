@@ -146,12 +146,6 @@ if navigation == "1. Accused Assessment & SHAP Debiasing":
                 ["Marginalized", "General"],
                 index=0 if active_data["demographics"].get("race_caste") == "Marginalized" else 1,
             )
-            income_level = st.selectbox(
-                "Income Bracket",
-                ["Low", "Medium", "High"],
-                index=["Low", "Medium", "High"].index(active_data["demographics"].get("income_level", "Medium")),
-            )
-            st.caption("ℹ️ Not available in the COMPAS dataset — no effect on the score in data-fitted mode.")
             gender = st.selectbox(
                 "Gender",
                 ["Male", "Female", "Non-binary"],
@@ -160,47 +154,23 @@ if navigation == "1. Accused Assessment & SHAP Debiasing":
         with c3:
             st.markdown("**Objective Criminal Merits**")
             prior_felonies = st.number_input(
-                "Prior Felonies", min_value=0, max_value=20, value=int(active_data["merits"].get("prior_felonies", 0))
-            )
-            prior_misdemeanors = st.number_input(
-                "Prior Misdemeanors",
-                min_value=0,
-                max_value=20,
-                value=int(active_data["merits"].get("prior_misdemeanors", 0)),
+                "Prior Offenses (total)", min_value=0, max_value=20,
+                value=int(active_data["merits"].get("prior_felonies", 0))
             )
             offense_severity = st.slider(
-                "Offense Severity (1-10)",
-                min_value=1,
-                max_value=10,
+                "Offense Severity (1-10)", min_value=1, max_value=10,
                 value=int(active_data["merits"].get("offense_severity", 5)),
             )
-
-        c4, c5 = st.columns(2)
-        with c4:
             age_at_arrest = st.number_input(
-                "Age at Arrest", min_value=18, max_value=90, value=int(active_data["merits"].get("age_at_arrest", 28))
+                "Age at Arrest", min_value=18, max_value=90,
+                value=int(active_data["merits"].get("age_at_arrest", 28))
             )
-            bail_failure = st.selectbox(
-                "Prior Failure to Appear in Court",
-                [0, 1],
-                index=int(active_data["merits"].get("bail_failure_history", 0)),
-                format_func=lambda x: "Yes" if x == 1 else "No",
-            )
-            st.caption("ℹ️ Not available in the COMPAS dataset — no effect on the score in data-fitted mode.")
-        with c5:
-            community_ties = st.slider(
-                "Community Ties Score (1-10)",
-                min_value=1,
-                max_value=10,
-                value=int(active_data["merits"].get("community_ties_score", 5)),
-                help="Employment stability, resident duration, family dependencies.",
-            )
-            st.caption("ℹ️ Not available in the COMPAS dataset — no effect on the score in data-fitted mode.")
-            charge_desc = st.text_area(
-                "Charge Description",
-                value=active_data.get("description", "Non-violent allegation."),
-                height=68,
-            )
+
+        charge_desc = st.text_area(
+            "Charge Description",
+            value=active_data.get("description", "Non-violent allegation."),
+            height=68,
+        )
 
         run_assessment = st.button("Run AI Risk Scoring & SHAP Debiasing", type="primary", use_container_width=True)
 
@@ -212,16 +182,12 @@ if navigation == "1. Accused Assessment & SHAP Debiasing":
             "description": charge_desc,
             "demographics": {
                 "race_caste": race_caste,
-                "income_level": income_level,
                 "gender": gender,
             },
             "merits": {
-                "prior_felonies": prior_felonies,
-                "prior_misdemeanors": prior_misdemeanors,
+                "prior_felonies":   prior_felonies,
                 "offense_severity": offense_severity,
-                "age_at_arrest": age_at_arrest,
-                "bail_failure_history": bail_failure,
-                "community_ties_score": community_ties,
+                "age_at_arrest":    age_at_arrest,
             },
         }
         assessment = system.assess_case(case_payload)
