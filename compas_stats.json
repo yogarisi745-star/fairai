@@ -1,0 +1,38 @@
+{
+  "total_records": 6172,
+  "race_distribution": {
+    "African-American": 3175,
+    "Caucasian": 2103,
+    "Hispanic": 509,
+    "Other": 343,
+    "Asian": 31,
+    "Native American": 11
+  },
+  "fpr_african_american": 42.34,
+  "fpr_caucasian": 22.01,
+  "fpr_hispanic": 19.38,
+  "fpr_disparity_ratio": 1.92,
+  "fnr_african_american": 28.48,
+  "fnr_caucasian": 49.64,
+  "fnr_hispanic": 58.2,
+  "disparate_impact_ratio": 0.634,
+  "four_fifths_compliant": false,
+  "model_r2": 0.43,
+  "model_accuracy": 68.66,
+  "model_roc_auc": 0.729,
+  "intercept": 70.2377,
+  "coefficients": {
+    "age": -1.0539,
+    "priors_count": 2.7717,
+    "c_charge_degree_F": 2.2404,
+    "c_charge_degree_M": -2.2404,
+    "sex_Female": 0.2834,
+    "sex_Male": -0.2834,
+    "race_African-American": 4.5441,
+    "race_Asian": -4.9709,
+    "race_Caucasian": -0.879,
+    "race_Hispanic": -5.4117,
+    "race_Native American": 16.1427,
+    "race_Other": -9.4252
+  }
+}
